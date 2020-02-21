@@ -1,0 +1,167 @@
+---
+title: "HW_4_Q1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library(corrplot)
+library("DataExplorer")
+library('GGally')
+library(boot)
+library('rpart')
+library(tree)
+library(bootstrap)
+library(cvTools)
+library(mclust)
+
+```
+
+
+
+We are using the protate data and splitting it into test and train (30,70 split). We are trying to find the best subset(exhaustive subset selection). The plots for cp and bic for each subset subset size is shown below.
+```{r, echo=FALSE}
+
+data(prostate)
+
+set.seed(123)               
+
+smp_siz<- floor(0.70*nrow(prostate)) 
+train_ind<- sample(seq_len(nrow(prostate)),size = smp_siz)
+train_data<-prostate[train_ind,]
+test_data<-prostate[-train_ind,]
+
+regfit_exh <- regsubsets(lpsa~., data = prostate,nvmax=9, method = "exhaustive")      ### best subset selection for the whole data
+exh_sum = summary(regfit_exh)
+exh_sum
+plot(exh_sum$cp, xlab = "Numer of variables", ylab = "cp", main = "Exhaustive_selection",type="l")
+plot(exh_sum$bic, xlab = "Numer of variables", ylab = "bic", main = "Exhaustive_selection",type="l")
+
+# print('cp values for best subsets of different sizes')
+# exh_sum$cp                                    ###### to check which one has min cp
+exh_cp= which(exh_sum$cp == min(exh_sum$cp))                 
+exh_coef_cp = coef(regfit_exh,exh_cp)            
+# exh_mod_pred = as.matrix(my_data[, col_name %in% names(exh_coef_cp)]) %*% exh_coef[names(exh_coef_cp) %in% col_name]
+
+# print('bic values for best subsets of different sizes')
+# exh_sum$bic                                    ###### to check which one has min bic
+exh_bic= which(exh_sum$bic == min(exh_sum$bic))                 
+exh_coef_bic = coef(regfit_exh,exh_bic)
+
+select = exh_sum$outmat
+print('factors in the best subset based on min cp value')
+which(select[exh_cp,] == "*")
+
+print('factors in the best subset based on min bic value')
+which(select[exh_bic,] == "*")
+
+
+
+```
+Based on the plot(cp vs no. of variables) we can see that best subset we can see that best subset is for the minimum cp value = 5(factors involved in the subset is metioned above)
+Based on the plot(bic vs no. of variables) we can see that best subset we can see that best subset is for the minimum cp value = 3(factors involved in the subset is metioned above)
+
+
+## AIC and BIC 
+
+```{r, echo = FALSE}
+
+
+####### AIC AND BIC ########
+
+
+
+lm_fit <- lm(lpsa~lcavol+lweight+age+lbph+svi, data = prostate)    ### these factors are selected from the subset with min cp value
+aic_value = AIC(lm_fit, k =2)
+print('AIC value for the best subset selected based on min cp value is ')
+aic_value
+
+bic_value = BIC(lm_fit)
+print('BIC value for the best subset selected based on min cp value is ')
+bic_value
+```
+## K-fold cross validation
+K-fold cross validation, the error values are calculated for the subset selected with the min cp value.
+The dataset is divided based on the k value and the linear model with the best subset(based on min cp) is run and the test error is obtained in each loop. The mean is computed for the average test error.
+```{r,echo = FALSE}
+######  k fold cross validation #######
+k_fold <- function(k){
+  folds <- cvFolds(nrow(prostate),K = k)
+  test_vector <- vector(length = k)
+  for (i in 1:k){
+    train_set <- prostate[folds$subsets[folds$which != i],]
+    test_set <- prostate[folds$subsets[folds$which == i],]
+    best_subset <- regsubsets(lpsa~.,data=train_set,nvmax=9,method="exhaustive")
+    coefi<-coef(best_subset,which.min(summary(best_subset)$cp))
+    subset_model = as.data.frame(train_set[, colnames(train_set) %in% names(coefi)])
+    subset_model$lpsa<-train_set$lpsa
+    lm_model <- lm(lpsa ~.,data = subset_model)
+    summary(lm_model)
+    prediction <- predict(lm_model,newdata = test_set)
+    test_vector[i] <- sqrt(mean((prediction - test_set$lpsa)^2))
+  }
+  return(mean(test_vector))
+}
+print('For 5-fold cross validation test error is')
+five_fold_error = k_fold(5)
+five_fold_error
+print('For 10-fold cross validation test error is')
+ten_fold_error  = k_fold(10) 
+ten_fold_error
+```
+## Boostrap 0.632
+The bootstrap 632 was run while choosing 75 values with replacement for each time.
+```{r, echo = FALSE}
+############## bootstrap 0.632 error #############
+
+bootstrap_fit=function(X,Y){lsfit(X,Y)}
+bootstrap_pred=function(fit, X){cbind(1,X)%*%fit$coef}
+sq.error <- function(Y,Yhat){(Y-Yhat)^2}
+
+
+
+temp=which(select[exh_cp,] == "*")
+res=bootpred(prostate[,temp], prostate$lpsa, nboot = 75, theta.fit=bootstrap_fit, theta.predict=bootstrap_pred, err.meas = sq.error) 
+bootstrap_error=res[3]        
+
+
+
+print('Bootstrap error for the subset selected from best subset selection with min cp value')
+bootstrap_error
+
+
+
+
+
+```
+The Bootstrap estimate for test error is the lowest on comparision with other methods.
+
+

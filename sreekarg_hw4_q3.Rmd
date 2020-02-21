@@ -1,0 +1,135 @@
+---
+title: "HW4_Q3"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library("DataExplorer")
+library('GGally')
+library(boot)
+library('rpart')
+library(tree)
+library(bootstrap)
+library(cvTools)
+library(mclust)
+library(rpart.plot)
+library(gbm)
+library(randomForest)
+```
+
+
+The prostate dataset is chosen for the analysis for this problem. The data is split into train and test(70,30 split). Ensemble methods like bagging, boosting and random forest algorithms are run on the data.Non-ensemble methods (linear regression and logistic regression) are also used to compare the accuracies of the models.
+
+```{r, echo=FALSE}
+data = prostate
+data$train   = as.numeric(data$train)
+set.seed(123)
+train_ind = sample(1:nrow(data), nrow(data)*0.7)
+train_data = data[train_ind, ]
+test_data = data[-train_ind, ]
+
+dim(train_data)
+names(train_data)
+```
+## Bagging
+The model summary is shown below
+```{r,echo = FALSE}
+#########################################################
+######## Bagging model ##################################
+#########################################################
+
+bag_model<-randomForest(lpsa~.,data=train_data,mtry=9,importane=TRUE)
+bag_model
+bag_pred<-predict(bag_model,newdata=test_data, type = 'response')
+bag_mse<-mean((bag_pred - test_data$lpsa)^2)
+print('The test error(mse) is')
+bag_mse
+# bag_model$mse
+```
+```{r echo = FALSE}
+###### Boosting Model#######################
+############################################
+
+# since regression problem distribution is gaussian
+boost_model<-gbm(lpsa~.,data=train_data,n.trees=100,distribution = "gaussian",interaction.depth = 4)
+summary(boost_model)
+plot(boost_model,i="lcavol")
+plot(boost_model,i="pgg45")
+plot(boost_model,i="age")
+boost_pred<-predict(boost_model,newdata=test_data,n.trees=100)
+boost_mse<-mean((boost_pred-test_data$lpsa)^2)
+boost_mse
+
+```
+
+
+## Random Forests
+```{r echo = FALSE}
+######### Random Forests #################
+##########################################
+
+x=round((dim(train_data)[2])/3)  #since regression uses p/3 values to build the trees
+rf_model<-randomForest(lpsa~.,data=train_data,mtry=x,n.trees=100,importance=TRUE)
+rf_pred<-predict(rf_model,newdata=test_data)
+rf_mse<-mean((rf_pred-test_data$lpsa)^2)
+rf_mse
+```
+## Logistic Regression
+```{r, echo = FALSE}
+log_mod<-glm(lpsa~., data=train_data, family=gaussian)
+log_pred<-predict(log_mod,test_data)
+log_mse<-mean((log_pred-test_data$lpsa)^2)
+log_mse
+```
+
+## Linear regression
+
+```{r, echo = FALSE}
+
+##########Linear Regression ####################
+###############################################
+
+lm_model=lm(lpsa~.,data=train_data)
+summary(lm_model)
+lm_pred=predict(lm_model,test_data)
+lm_mse=mean((lm_pred-test_data$lpsa)^2)
+lm_mse
+
+
+```
+
+The logistic and linear regression give the best results on comparision with the ensemble methods.
+
+
+
+

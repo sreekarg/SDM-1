@@ -1,0 +1,98 @@
+---
+title: "HW4_q4"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library("DataExplorer")
+library('GGally')
+library(boot)
+library('rpart')
+library(tree)
+library(bootstrap)
+library(cvTools)
+library(mclust)
+library(rpart.plot)
+library(gbm)
+library(randomForest)
+```
+
+The dataset is taken and the classification output ‘spam’ is factored to 1 and 0. The dataset is then split to train and test(split 80,20) and for various values of 'mtry' random forest algorithm is run. 
+
+
+```{r, echo=FALSE}
+spam_data = spam
+set.seed(123456789)
+train_ind = sample(1:nrow(spam), nrow(spam)*0.80)
+train_data = spam_data[train_ind, ]
+test_data = spam[train_ind, ]
+train_data$spam <- as.character(train_data$spam)
+train_data$spam <- as.factor(train_data$spam)
+```
+
+The out of bag error and the test error is plotted and shown below.
+
+```{r, echo = FALSE}
+m=4:(floor(sqrt(dim(train_data)[2]-1))+2)
+rf_model = randomForest(spam~., data=train_data,ntree=2500)
+
+for (i in m){
+rf_model = randomForest(spam~., data=train_data,mtry=i,ntree=2500)
+rf_model
+ran_pred = predict(rf_model,test_data, type = "class") 
+error<-mean(ran_pred != test_data$spam)
+  if (exists('oob_err')==FALSE){
+    oob_err = c(i,mean(rf_model$err.rate[,1])*100,error*100) 
+    }
+  else{
+    oob_err = rbind(oob_err, c(i,mean(rf_model$err.rate[,1])*100,error*100)) 
+  }
+}
+oob_err = as.data.frame(oob_err) 
+names(oob_err) = c('mtry', 'oob_error_rate','test_error') 
+oob_err$mtry = as.factor(oob_err$mtry)
+x=as.numeric(oob_err$mtry)+3
+y1=oob_err$oob_error_rate
+y2=oob_err$test_error
+
+plot(x,as.numeric(y1),type='l',xlab="m values", ylab="oob_error")
+```
+```{r,echo = FALSE}
+plot(x,as.numeric(y2),type='l',xlab="m values", ylab="test_error")
+
+
+
+```
+We can see from the above plots that the classifier fluctuates with the number of inputs.
+The above plot shows that the error is minimum at 9.
+
+

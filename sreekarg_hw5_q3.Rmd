@@ -1,0 +1,118 @@
+---
+title: "Homework 5 Q3"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Q3)
+
+
+```{r include = FALSE}
+rm(list = ls()) 
+library(ISLR)
+library(e1071)
+
+```
+
+For this question 3 different Support vector classifier(kernel = Linear, Radial, Polynomial) are built. The data is split into test and train(30,70 split).  
+```{r, echo=FALSE}
+data_set<-OJ
+data_set$Purchase<-as.factor(data_set$Purchase)
+set.seed(123456789)
+train_ind = sample(1:nrow(data_set), nrow(data_set)*0.7)
+train = data_set[train_ind, ]
+test = data_set[-train_ind, ]
+
+levels(test$Purchase)
+```
+## Linear Kernel
+
+```{r, echo = FALSE}
+lin_train_err = NULL
+lin_test_err = NULL
+cost = seq(0.01,10,0.4995)
+
+for (i in 1:length(cost))
+{
+  lin_fit=tune(svm ,Purchase~., data=train, kernel ="linear",ranges =list(cost=cost[i]))
+  lin_train_pred<-predict(lin_fit$best.model,train)
+  lin_test_pred<-predict(lin_fit$best.model,test)
+  lin_train_err[i]<-mean(train$Purchase!=lin_train_pred)
+  lin_test_err[i]<-mean(test$Purchase!=lin_test_pred)
+  
+}
+
+lin_err = cbind(cost,lin_train_err,lin_test_err)
+print('The train and test error for the SVC model(linear kernel) for the various costs are - ')
+lin_err
+print('The plots for the train and test errors for the various costs are shown below.')
+plot(cost, lin_train_err, type="b", xlab = "Cost", main="Linear Kernel Train Error", ylab="Train Error")
+plot(cost, lin_test_err, type="b", xlab = "Cost", main="Linear Kernel Test Error", ylab="Train Error")
+
+
+
+```
+
+## Radial Kernel
+```{r, echo = FALSE}
+rad_train_err = NULL
+rad_test_err = NULL
+
+
+for (i in 1:length(cost))
+{
+  rad_fit=tune(svm ,Purchase~., data=train, kernel ="radial",ranges =list(cost=cost[i]))
+  rad_train_pred<-predict(rad_fit$best.model,train)
+  rad_test_pred<-predict(rad_fit$best.model,test)
+  rad_train_err[i]<-mean(train$Purchase!=rad_train_pred)
+  rad_test_err[i]<-mean(test$Purchase!=rad_test_pred)
+  
+}
+
+rad_err = cbind(cost,rad_train_err,rad_test_err)
+print('The train and test error for the SVC model(Radial kernel) for the various costs are - ')
+rad_err
+print('The plots for the train and test errors for the various costs are shown below.')
+plot(cost, rad_train_err, type="l", xlab = "Cost", main="Radial Kernel Train Error", ylab="Train Error")
+plot(cost, rad_test_err, type="b", xlab = "Cost", main="Radial Kernel Test Error", ylab="Train Error")
+
+```
+
+## Polynomial Kernel
+
+
+```{r, echo = FALSE}
+poly_train_err = NULL
+poly_test_err = NULL
+
+for (i in 1:length(cost))
+{
+  poly_fit=tune(svm ,Purchase~., data=train, kernel ="polynomial",degree=2,ranges =list(cost=cost[i]))
+  train_pred<-predict(poly_fit$best.model,train)
+  test_pred<-predict(poly_fit$best.model,test)
+  poly_train_err[i]<-mean(train$Purchase!=train_pred)
+  poly_test_err[i]<-mean(test$Purchase!=test_pred)
+  
+}
+
+poly_err = cbind(cost,poly_train_err,poly_test_err)
+print('The train and test error for the SVC model(Polynomial kernel) for the various costs are - ')
+poly_err
+print('The plots for the train and test errors for the various costs are shown below.')
+plot(cost, poly_train_err, type="b", xlab = "Cost", main="Polynomial Kernel Train Error", ylab="Train Error")
+plot(cost, poly_test_err, type="b", xlab = "Cost", main="Polynomial Kernel Test Error", ylab="Test Error")
+
+
+
+
+```
+
+From the above 3 models we can say that least test error is obtained for SVM with linear kernel followed by polynomial kernel(for some costs the error rates were close to that of linear kernel) and for the radial kernel model error rates were higher than the other two(for all costs).
+
+
+
+
+

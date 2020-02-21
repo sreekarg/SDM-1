@@ -1,0 +1,155 @@
+---
+title: "HOMEWORK 3 "
+author: "Sreekar Guggilam"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+#Q2
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include = FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library(corrplot)
+library("DataExplorer")
+library('GGally')
+
+```
+
+
+##a)
+
+The summary of the diabetes data is shown below:
+```{r echo=FALSE}
+diabetes <- read.delim('DiabetesAndrews36_1.txt', header = FALSE, sep = "")
+
+data = cbind.data.frame(diabetes$V5,diabetes$V6,diabetes$V7,diabetes$V8,diabetes$V9)
+data$class = diabetes$V10
+
+names(data) <- c('V1', 'V2', 'V3', 'V4', 'V5', 'class')
+data$class = as.factor(data$class)
+summary(data)
+```
+
+
+
+Pairwise scatterplots for all five variables, with different colours representing the three different classes is shown below:
+
+```{r echo=FALSE}
+ggpairs(data, columns = 1:5, ggplot2::aes(colour=class))
+```
+
+
+
+The Red colour is for the observations whose class is 1 similarly green is for class 2 and blue is for class 3. From this graph we can see that each class's observations have a normal distribution. From this graph we can see that class 2 and class 3 covariance matrices are slightly similar but still different, class 1's covariance matrix is different from that of class 2 and class 3. In order to see that clearly the covariance matrices are plotted separately below:
+
+Covariance Matrices-
+
+
+```{r echo=FALSE}
+data_class=split(data,data$class)
+data_class1=data_class$`1`
+print('Class 1')
+plot_correlation(as.matrix(data_class1[-6]))
+
+
+```
+
+```{r echo=FALSE}
+data_class2=data_class$`2`
+print('Class 2')
+plot_correlation(as.matrix(data_class2[-6]))
+
+```
+
+
+```{r echo=FALSE}
+data_class3=data_class$`3`
+print('Class 3')
+plot_correlation(as.matrix(data_class3[-6]))
+
+```
+But the covariance matrices are diferent for all the classes. For a multivariate distribution there is some correlation between different predictors and each predictor has a normal distribution, but for the dataset, some predictors dont have any correlation(correlation = approx.0). Hence the three classes are not multivariate normal.
+
+
+##b)
+The LDA and QDA model was implemented over the whole data.
+
+``` {r echo = FALSE }
+
+###### LDA ######
+
+
+lda_fit<-lda(class~., data=data)
+lda_pred<-predict(lda_fit,newdata = data)
+
+lda_acc = mean(lda_pred$class==data$class)
+print('The LDA model accuarcy is-')
+lda_acc
+```
+
+
+
+
+```{r echo = FALSE}
+
+
+###### QDA ######
+qda_fit<-qda(class~.,data=data)
+qda_pred<-predict(qda_fit,data)
+
+qda_acc = mean(qda_pred$class==data$class)
+print('The QDA model accuarcy is-')
+qda_acc
+
+```
+QDA has higher accuracy than LDA.
+```{r echo = FALSE}
+#### PREDICTION ######
+
+test = data.frame(0.98,122,544,186,184)
+names(test) = c('V1', 'V2', 'V3', 'V4', 'V5')
+y_test_lda<-predict(lda_fit,test)
+y_test_qda<-predict(qda_fit,test)
+
+print('LDA Prediction for the individual is-')
+y_test_lda$class
+print('DA Prediction for the individual is-')
+y_test_qda$class
+```
+
+
+
+
+
+
+

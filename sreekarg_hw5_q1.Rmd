@@ -1,0 +1,133 @@
+---
+title: "Homework 5"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Q1)
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(ElemStatLearn)
+library(neuralnet)
+library(gam)
+```
+
+Spam dataset from ElemStatLearn library is used for the problem. Neural network model is fit on the data (along with 5-fold cross validation) and determined the number of neurons to be used in a single layer (keeping only one hidden layer).
+
+
+```{r, echo=FALSE}
+set.seed(123)
+data <- spam
+data$spam <- as.numeric(data$spam)
+data$spam <- data$spam -1
+data$spam <- as.factor(data$spam)
+train_ind <- sample(1:nrow(data),0.7*nrow(data))
+train <- data[train_ind,]
+test <- data[-train_ind,]
+```
+
+
+```{r, echo = FALSE}
+
+n <- names(spam)
+f <- as.formula(paste("spam ~", paste(n[!n %in% "spam"], collapse = " + ")))
+
+k_fold <- function(data,hid_layers)
+{
+    nn_train_err <- NULL
+    nn_test_err <- NULL
+    k <- 5
+    folds= sample(1:k,nrow(data),replace=TRUE)
+    for(j in 1:k)
+    {
+        train_cv <- data[folds != j,]
+        test_cv <- data[folds == j,]
+        nn_fit <- neuralnet(f,data=train_cv,hidden=hid_layers,threshold = .2,linear.output=FALSE)
+        nn_train_pred <- round(compute(nn_fit,train_cv[,1:57])$net.result[,2])
+        nn_train_err[j] <- mean(nn_train_pred != train_cv$spam)
+        nn_test_pred <- round(compute(nn_fit,test_cv[,1:57])$net.result[,2])
+        nn_test_err[j] <- mean(nn_test_pred != test_cv$spam)
+    }
+    cv_err = cbind(mean(nn_train_err),mean(nn_test_err))
+    return(cv_err)
+}
+
+```
+
+The plots for the train error and test error for the number of neurons in the hidden layer is shown below.
+```{r, echo = FALSE}
+########################
+# Selecting the number of neurons for hidden layer
+########################
+cv_err <- NULL
+nn_train_err <- NULL
+nn_test_err <- NULL
+set.seed(123)
+for(i in 1:5)
+{
+    cv_err <- k_fold(data,i)
+    nn_train_err[i] = cv_err[1]
+    nn_test_err[i] = cv_err[2]
+}
+
+plot(nn_train_err,main='Train Error vs hidden neurons',xlab="Hidden neurons",ylab='Train error',type='l')
+plot(nn_test_err,main='Test Error vs hidden neurons',xlab="Hidden neurons",ylab='Test error',type='l')
+
+print('Minimum number of neurons in the hidden layer for minimum train error is')
+which(min(nn_train_err) == nn_train_err)
+print('Minimum number of neurons in the hidden layer for minimum test error is')
+which(min(nn_test_err) == nn_test_err)
+
+
+
+```
+
+To compare this neural network model, Generalized additive model, Logistic regression model is fit on the data. 
+
+## Generalized additive model 
+The data is split into test and train (30,70 split). 
+
+
+```{r, echo=FALSE}
+am_fit=gam(spam~., data=train,family=binomial)
+# plot(am_fit,se=T,color = "blue")
+
+#Preditting the output
+am_pred=predict(am_fit,newdata=test)
+conf_am= table(am_pred>.5,test$spam)
+
+#Error rate
+am_err=1-sum(diag(conf_am))/sum(conf_am)
+print('Additive model error is - ')
+am_err
+
+
+```
+
+## Logistic Regression
+
+```{r, echo = FALSE}
+
+
+glm_fit = glm(spam ~ ., data = train, family = "binomial")
+glm_pred = predict(glm_fit, newdata = test, type = "response")
+glm_test_err <- mean(round(glm_pred) != test$spam)
+print('The Logistic regression model error is - ')
+glm_test_err
+
+
+
+
+```
+
+For the additive and logistic regression model the each feature's relation with the response variable is modeled using a curve. Neural network model don’t give simple explanations by introspecting individual model parameters, due to which they may be more difficult to understand when feature sets are small. But for large data sets with highly correlated features, it's not clear whether they are less interpretable than additive models.
+
+But when considering the performance of the models, neural network model has higher accuracy than the additive and logistic regression model.
+
+
+
+

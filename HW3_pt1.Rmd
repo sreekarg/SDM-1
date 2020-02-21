@@ -1,0 +1,325 @@
+---
+title: "HW3_pt1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Q1
+
+```{r include = FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library(corrplot)
+library("DataExplorer")
+library('GGally')
+
+```
+
+For Boston dataset we are considering crime rate as response. We are considering two factors for crime rate (below and above the median of the crime rates). Here data is split into train and test (70%,30%).
+```{r echo=FALSE}
+
+boston_data <- Boston
+smp_siz<- floor(0.7*nrow(Boston)) 
+?Boston
+print('Median of the crime rates is- ')
+median(boston_data$crim)
+
+
+bool_ind = which(boston_data$crim <= median(boston_data$crim) )
+boston_data$crim[bool_ind] = 0
+boston_data$crim[-bool_ind] = 1
+
+set.seed(123)
+train_ind = sample(seq_len(nrow(boston_data)),size = smp_siz)
+train <- na.fail(boston_data[train_ind,])
+test <- na.fail(boston_data[-train_ind,])
+
+
+
+```
+We are creating a logistic regression model. For the logistic regression we are rounding of our predictions (split by 0.5).
+
+```{r echo = FALSE}
+
+############    Logistic Regression     ###########
+logistic_fit<-glm(crim~., data=train, family=binomial)
+log_pred_train<-predict(logistic_fit,newdata = train, type = "response")
+log_pred_test<-predict(logistic_fit,newdata = test, type = "response")
+
+log_pred_train[which(log_pred_train<= 0.5)] = 0
+log_pred_train[which(log_pred_train> 0.5)] = 1
+
+log_pred_test[which(log_pred_test<= 0.5)] = 0
+log_pred_test[which(log_pred_test> 0.5)] = 1
+
+log_train_acc = mean(log_pred_train == train$crim) 
+log_test_acc = mean(log_pred_test == test$crim)
+# print(' logistic regression accuracy for train data is -')
+# log_train_acc 
+# 
+# print(' logistic regression accuracy for test data is -')
+# log_test_acc = mean(log_pred_test == test$crim) 
+
+
+```
+
+
+
+```{r echo = FALSE}
+##### for different subsets  #####
+
+regfit_best <- regsubsets(crim~., data = boston_data,nbest =1,nvmax = 13, method = "exhaustive")
+my_sum = summary(regfit_best)
+
+print('number of predictors for min cp')
+which(my_sum$cp == min(my_sum$cp))
+print('number of predictors for max adjr2')
+which(my_sum$adjr2 == max(my_sum$adjr2))
+
+logistic_fit_best6 <- glm(crim~nox+age+rad+medv+zn+black,data = train, family=binomial)
+logistic_fit_best7 <- glm(crim~nox+age+rad+medv+zn+black+ptratio,data = train, family=binomial)
+logistic_fit_best8 <- glm(crim~nox+age+rad+medv+zn+black+ptratio+lstat,data = train, family=binomial)
+logistic_fit_best9 <- glm(crim~nox+age+rad+medv+zn+black+ptratio+lstat+rm,data = train, family=binomial)
+logistic_fit_best10 <- glm(crim~nox+age+rad+medv+zn+black+ptratio+lstat+rm+dis,data = train, family=binomial)
+logistic_fit_best11 <- glm(crim~nox+age+rad+medv+zn+black+ptratio+lstat+rm+tax+indus,data = train, family=binomial)
+logistic_fit_best12 <- glm(crim~nox+age+rad+medv+zn+black+ptratio+lstat+rm+dis+tax+indus,data = train, family=binomial)
+
+
+### train predictions ###
+log_best_pred_train6<-predict(logistic_fit_best6,newdata = train, type = "response")
+log_best_pred_train7<-predict(logistic_fit_best7,newdata = train, type = "response")
+log_best_pred_train8<-predict(logistic_fit_best8,newdata = train, type = "response")
+log_best_pred_train9<-predict(logistic_fit_best9,newdata = train, type = "response")
+log_best_pred_train10<-predict(logistic_fit_best10,newdata = train, type = "response")
+log_best_pred_train11<-predict(logistic_fit_best11,newdata = train, type = "response")
+log_best_pred_train12<-predict(logistic_fit_best12,newdata = train, type = "response")
+
+log_best_pred_train6[which(log_best_pred_train6<= 0.5)] = 0
+log_best_pred_train6[which(log_best_pred_train6> 0.5)] = 1
+
+log_best_pred_train7[which(log_best_pred_train7<= 0.5)] = 0
+log_best_pred_train7[which(log_best_pred_train7> 0.5)] = 1
+
+log_best_pred_train8[which(log_best_pred_train8<= 0.5)] = 0
+log_best_pred_train8[which(log_best_pred_train8> 0.5)] = 1
+
+
+log_best_pred_train9[which(log_best_pred_train9<= 0.5)] = 0
+log_best_pred_train9[which(log_best_pred_train9> 0.5)] = 1
+
+log_best_pred_train10[which(log_best_pred_train10<= 0.5)] = 0
+log_best_pred_train10[which(log_best_pred_train10> 0.5)] = 1
+
+log_best_pred_train11[which(log_best_pred_train11<= 0.5)] = 0
+log_best_pred_train11[which(log_best_pred_train11> 0.5)] = 1
+
+log_best_pred_train12[which(log_best_pred_train12<= 0.5)] = 0
+log_best_pred_train12[which(log_best_pred_train12> 0.5)] = 1
+
+
+### test predictions ###
+
+
+
+log_best_pred_test6<-predict(logistic_fit_best6,newdata = test, type = "response")
+log_best_pred_test7<-predict(logistic_fit_best7,newdata = test, type = "response")
+log_best_pred_test8<-predict(logistic_fit_best8,newdata = test, type = "response")
+log_best_pred_test9<-predict(logistic_fit_best9,newdata = test, type = "response")
+log_best_pred_test10<-predict(logistic_fit_best10,newdata = test, type = "response")
+log_best_pred_test11<-predict(logistic_fit_best11,newdata = test, type = "response")
+log_best_pred_test12<-predict(logistic_fit_best12,newdata = test, type = "response")
+
+log_best_pred_test6[which(log_best_pred_test6<= 0.5)] = 0
+log_best_pred_test6[which(log_best_pred_test6> 0.5)] = 1
+
+log_best_pred_test7[which(log_best_pred_test7<= 0.5)] = 0
+log_best_pred_test7[which(log_best_pred_test7> 0.5)] = 1
+
+log_best_pred_test8[which(log_best_pred_test8<= 0.5)] = 0
+log_best_pred_test8[which(log_best_pred_test8> 0.5)] = 1
+
+
+log_best_pred_test9[which(log_best_pred_test9<= 0.5)] = 0
+log_best_pred_test9[which(log_best_pred_test9> 0.5)] = 1
+
+log_best_pred_test10[which(log_best_pred_test10<= 0.5)] = 0
+log_best_pred_test10[which(log_best_pred_test10> 0.5)] = 1
+
+log_best_pred_test11[which(log_best_pred_test11<= 0.5)] = 0
+log_best_pred_test11[which(log_best_pred_test11> 0.5)] = 1
+
+log_best_pred_test12[which(log_best_pred_test12<= 0.5)] = 0
+log_best_pred_test12[which(log_best_pred_test12> 0.5)] = 1
+
+
+
+### train accuracies ###
+
+log_best_train_acc6 = mean(log_best_pred_train6==train$crim)
+log_best_train_acc7 = mean(log_best_pred_train7==train$crim) 
+log_best_train_acc8 = mean(log_best_pred_train8==train$crim) 
+log_best_train_acc9 = mean(log_best_pred_train9==train$crim) 
+log_best_train_acc10 = mean(log_best_pred_train10==train$crim) 
+log_best_train_acc11 = mean(log_best_pred_train11==train$crim) 
+log_best_train_acc12 = mean(log_best_pred_train12==train$crim) 
+
+### test accuracies  ###
+log_best_test_acc6 = mean(log_best_pred_test6==test$crim)
+log_best_test_acc7 = mean(log_best_pred_test7==test$crim) 
+log_best_test_acc8 = mean(log_best_pred_test8==test$crim) 
+log_best_test_acc9 = mean(log_best_pred_test9==test$crim) 
+log_best_test_acc10 = mean(log_best_pred_test10==test$crim) 
+log_best_test_acc11 = mean(log_best_pred_test11==test$crim) 
+log_best_test_acc12 = mean(log_best_pred_test12==test$crim) 
+```
+Subsets are selected based on the exhaustive method(best method) for different subset sizes
+
+
+```{r echo = FALSE}
+
+
+nv = c(6,7,8,9,10,11,12,13)
+print('train accuracy for different subsets')
+log_train_acc_all = c(log_best_train_acc6,log_best_train_acc7,log_best_train_acc8,log_best_train_acc9,log_best_train_acc10,log_best_train_acc11,log_best_train_acc12,log_train_acc)
+plot(nv,log_train_acc_all, type = 'l')
+```
+
+
+
+```{r echo = FALSE}
+print('test accuracy for different subsets')
+log_test_acc_all = c(log_best_test_acc6,log_best_test_acc7,log_best_test_acc8,log_best_test_acc9,log_best_test_acc10,log_best_test_acc11,log_best_test_acc12,log_test_acc)
+plot(nv,log_test_acc_all, type = 'l')
+
+```
+We can see that for the model with 11 predictors, while the for the test accuarcy is highest for the subset size = 6 (which has min Cp value) (Although the difference in the accuarcies for different subset sizes is quite low for both train and test data.)
+
+## LDA
+```{r echo = FALSE}
+#### LDA ####
+
+lda_fit<-lda(crim~., data=train)
+lda_pred_train<-predict(lda_fit,newdata = train)
+lda_pred_test<-predict(lda_fit,newdata = test)
+
+
+lda_train_acc = mean(lda_pred_train$class==train$crim)
+lda_test_acc = mean(lda_pred_test$class == test$crim)
+
+
+
+```
+The correlation plot for the predictors is shown below
+
+```{r echo = FALSE}
+## subset selection from correlation ##
+
+rescor = cor(as.matrix(boston_data))
+ggcorr(boston_data, geom = 'tile', label = TRUE)
+
+
+
+lda_fit_sub1 = lda(crim~ indus+nox+age+dis+rad+tax, data = train)
+lda_sub1_pred_train<-predict(lda_fit_sub1,newdata = train)
+lda_sub1_pred_test<-predict(lda_fit_sub1,newdata = test)
+
+
+lda_sub1_train_acc = mean(lda_sub1_pred_train$class==train$crim)
+lda_sub1_test_acc = mean(lda_sub1_pred_test$class == test$crim)
+
+lda_fit_sub2 = lda(crim~ indus+nox+age+dis+rad+tax+lstat, data = train)
+lda_sub2_pred_train<-predict(lda_fit_sub2,newdata = train)
+lda_sub2_pred_test<-predict(lda_fit_sub2,newdata = test)
+
+
+lda_sub2_train_acc = mean(lda_sub2_pred_train$class==train$crim)
+lda_sub2_test_acc = mean(lda_sub2_pred_test$class == test$crim)
+
+
+lda_train_acc_all = c(lda_sub1_train_acc,lda_sub2_train_acc,lda_train_acc)
+
+plot(lda_train_acc_all, type = 'b', ylabel = 'train accuracy',xlabel = 'different subsets')
+print('plot for the LDA model with different subsets accuracy on train data ')
+
+
+
+lda_sub1_pred_test<-predict(lda_fit_sub1,newdata = test)
+lda_sub1_pred_test<-predict(lda_fit_sub1,newdata = test)
+
+
+lda_sub1_test_acc = mean(lda_sub1_pred_test$class==test$crim)
+lda_sub1_test_acc = mean(lda_sub1_pred_test$class == test$crim)
+
+lda_fit_sub2 = lda(crim~ indus+nox+age+dis+rad+tax+lstat, data = test)
+lda_sub2_pred_test<-predict(lda_fit_sub2,newdata = test)
+lda_sub2_pred_test<-predict(lda_fit_sub2,newdata = test)
+
+
+lda_sub2_test_acc = mean(lda_sub2_pred_test$class==test$crim)
+lda_sub2_test_acc = mean(lda_sub2_pred_test$class == test$crim)
+
+
+lda_test_acc_all = c(lda_sub1_test_acc,lda_sub2_test_acc,lda_test_acc)
+plot(lda_test_acc_all, type = 'b', ylabel = 'test accuracy', xlabel = 'different subsets')
+print('plot for the LDA model with different subsets accuracy on test data ')
+
+
+```
+(subsets for index '1' - prdictors with abs(correlation factor) greater than 0.6, index '2' - prdictors with abs(correlation factor) greater than 0.5, index '3' - all predictors ).
+
+We can see that for the train data we are getting max accuracy for model with all predictors, while for the test data subset with predictors whose coreelation factor greater than 0.5 has given better accuracy,  while the model with all predictors is giving lower accuracy than both  the subsets indicating that this model with all predictors is trying to overfit. 
+
+
+
+## KNN
+For the fitting the KNN model for different K values
+```{r echo = FALSE}
+############## KNN ############
+
+k = c(1,3,5,7,9,11,13,15,17,19,21)
+knn_train_acc = rep(0, length(k))
+knn_test_acc = rep(0, length(k))
+
+for (i in 1:length(k))
+{
+  knn_train<-knn(train,train,train$crim,k=k[i])
+  knn_test<-knn(train,test,train$crim,k=k[i])
+  knn_train_acc[i]<-mean(knn_train==train$crim)
+  knn_test_acc[i]<-mean(knn_test==test$crim)
+}
+print('Plot for KNN model accuracy for the train data vs k')
+plot(k,knn_train_acc, type = 'l')
+print('Plot for KNN model accuracy for the test data vs k')
+plot(k,knn_test_acc, type = 'l')
+
+
+```
+We can see that for increasing k value the accuracy is decreasing for train and test data. But for k = 1 we can see that the model is overfitting(since the accuracy is greater than 99%).  Best model would be for k  = 9 since for k<9 the train acuracy is dropping significantly and for the test data accuracy is decreasing but not so as significantly as the train data (indicating that the model might be overfitting or the random split of data is slightly biased.)
+
+
+

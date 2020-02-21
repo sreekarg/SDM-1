@@ -1,0 +1,137 @@
+---
+title: "hw4_q2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library("DataExplorer")
+library('GGally')
+library(boot)
+library('rpart')
+library(tree)
+library(bootstrap)
+library(cvTools)
+library(mclust)
+library(rpart.plot)
+
+```
+
+
+We are using the Wine data. The values 1,2 and 3 are changed to corresponding names of ‘Barolo, ‘Grignolino’and ‘Barbara’. The dataset is split into train and test(70,10 split). A classification tree is constructed with the minimum number of observations for each node to 15. By reducing insplit further would drastically increase the size of the tree.
+```{r, echo=FALSE}
+
+
+wine_data<-read.csv('wine.data', header=FALSE)
+colnames(wine_data)=c('Type', 'Alcohol', 'Malic', 'Ash', 
+                         'Alcalinity', 'Magnesium', 'Phenols', 
+                         'Flavanoids', 'Nonflavanoids',
+                         'Proanthocyanins', 'Color', 'Hue', 
+                         'Dilution', 'Proline')
+
+wine_data$Type[which(wine_data$Type==1)]='Barolo'
+wine_data$Type[which(wine_data$Type==2)]='Grignolino'
+wine_data$Type[which(wine_data$Type==3)]='Barbera'
+
+set.seed(12345)
+subset=sample(nrow(wine_data),nrow(wine_data)*0.7)
+train_data=wine_data[subset,]
+test_data=wine_data[-subset,]
+
+
+```
+
+The tree diagram is plotted and shown below.
+
+```{r, echo=FALSE}
+
+
+
+ctr_mod =rpart.control(minsplit=15,xval=10,cp = 0)
+tree_model<- rpart(Type~., data = train_data, method = "class", control = ctr_mod)
+
+
+tree_train_pred = predict(tree_model,train_data, type = "class")
+tree_test_pred = predict(tree_model,test_data, type = "class")
+
+#### test accuracy ####
+print('The test accuracy for the model is ')
+mean(tree_test_pred == test_data$Type)*100
+
+rpart.plot(tree_model, nn=TRUE)
+# summary(tree_model)
+table(test_data$Type,tree_test_pred)
+
+
+```
+
+From the tree we can see that the Flavanoids, Colour and Malic are the factors used for separating the observations. There are only 5 misclassifications(the confusion matrix is shown above).
+
+```{r,echo = FALSE}
+
+cp_min = which.min(tree_model$cptable[,4])    #### min error value
+pruned_model <- prune(tree_model, cp = tree_model$cptable[cp_min,1])
+prune_pred= predict(pruned_model,test_data, type = "class")
+print('the test accuracy after pruning is')
+mean(prune_pred == test_data$Type)*100
+rpart.plot(pruned_model, nn=TRUE)
+
+
+
+
+train_pred = predict(pruned_model,train_data, type = "class")
+# mean(train_pred == train_data$Type)*100
+
+# tree_model$frame
+
+# summary(tree_model)         # to obtain node information 
+table(test_data$Type,prune_pred)
+
+sum(test_data$Type!=prune_pred)
+
+
+```
+Even after pruning the test accuracy is same.
+```{r,echo = FALSE}
+
+
+
+
+
+```
+
+
+
+
+
+
+

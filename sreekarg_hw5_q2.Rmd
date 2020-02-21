@@ -1,0 +1,118 @@
+---
+title: "Homework5 Q2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include = FALSE}
+rm(list = ls()) 
+library(tree)
+library("rpart")
+library(MASS)
+library(rpart.plot)
+library(ElemStatLearn)
+library(neuralnet)
+
+```
+
+Prostate dataset is being used for this question. The aim is to find the effect of the outlier on the neural network model. Hold out method is used. The data is split into train and test(70,30 split). 
+
+```{r, echo = FALSE}
+data<-prostate
+data$train<-as.numeric(prostate$train)
+set.seed(1234) #set seed helps in genrating same random numbers for indices
+
+smp_siz<- floor(0.70*nrow(data)) 
+train_ind<- sample(seq_len(nrow(data)),size = smp_siz)
+train<-data[train_ind,]
+test<-data[-train_ind,]
+n <- names(data)
+f <- as.formula(paste("train ~", paste(n[!n %in% "train"], collapse = " + ")))
+
+```
+For the original data neural network model is fit (number of neurons in hidden layer varying from 1:9 (since only 9 predictors are there)).
+
+```{r, echo = FALSE}
+test_err <- NULL
+train_err <- NULL
+
+for(i in 1:9)
+{
+  nn_fit <- neuralnet(f,data=train,hidden=i,threshold = .2,linear.output=FALSE)
+  train_pred <- round (compute(nn_fit,train)$net.result[,1])
+  test_pred <- round(compute(nn_fit,test)$net.result[,1])
+  train_err[i] <- mean(train_pred!= train$train)
+  test_err[i] <- mean(test_pred!=test$train)
+  
+}
+err = cbind(train_err,test_err)
+err
+test_best_h<-which(test_err==min(test_err))
+train_best_h<-train_err[train_err==min(train_err)]
+# train_best_h
+# test_best_h
+
+
+
+```
+
+After introducing an outlier, the train and test error have increased(as shown below).(neural network model is built with different number of neurons in the hidden layer.)
+
+
+```{r, echo = FALSE}
+train_out = train
+train_out[20,]$age<- 100
+train_err_out = NULL
+test_err_out = NULL
+for(i in 1:9)
+{
+  nn_out <- neuralnet(f,data=train_out,hidden=i,threshold = .2,linear.output=FALSE)
+  train_pred <- round (compute(nn_out,train_out)$net.result[,1])
+  test_pred <- round(compute(nn_out,test)$net.result[,1])
+  train_err_out[i] <- mean(train_pred!= train_out$train)
+  test_err_out[i] <- mean(test_pred!=test$train)
+  
+}
+
+err_out = cbind(train_err_out,test_err_out)
+err_out
+
+train_best_out<-which(train_err_out==min(train_err_out))
+test_best_out<-which(test_err_out==min(test_err_out))
+
+train_best_out
+test_best_out
+
+```
+
+Now the outlier is shrinked back to its original value, and the error value (train and test errors ) is not effected by the shrinking age.
+
+
+```{r, echo = FALSE}
+k = train[20,]$age
+nn_out <- neuralnet(f,data=train,hidden=2,threshold = .2,linear.output=FALSE)
+age_var = seq(k,100,5)
+var_train_err = NULL
+var_test_err = NULL
+for (i in 1:length(age_var))
+{
+  train[50,]$age<-age_var[i]
+  
+  train_pred <- round (compute(nn_out,train)$net.result[,1])
+  test_pred <- round(compute(nn_out,test)$net.result[,1])
+  var_train_err[i] <- mean(train_pred!= train$train)
+  var_test_err[i] <- mean(test_pred!=test$train)
+  
+}
+
+var_err = cbind(age_var,var_train_err,var_test_err)
+var_err
+
+```
+We can see that due to the outlier the train and test errors have increased (for the data with the outlier), and the model was not affected  by the outlier (can see when comparing the train error for the outlier model with 2 neurons and the train errors for the shrinking age values). The range of age has not affected the errors, so the range of outlier has no significant effect on the network coefficient estimates .
+
+

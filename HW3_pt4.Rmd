@@ -1,0 +1,101 @@
+---
+title: "HW3_pt4"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(DAAG)                 
+library(lattice)
+library(MASS)
+library("geneplotter")
+library(ggplot2)
+library(readr)
+library("Hmisc")
+library(corrplot)
+library("dlookr")
+library(dplyr)
+library(tidyr)
+library(ruler)
+library(data.table)
+library("ElemStatLearn")
+library("class")
+library("ISLR")
+library(glmnet)
+library(pls)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(klaR)  
+library(bestglm)
+library(corrplot)
+library("DataExplorer")
+library('GGally')
+library(boot)
+```
+# Q4
+
+X and Y are commuted using by the equation given in the question using normal distribution.
+```{r, echo=FALSE}
+set.seed(1)
+x=rnorm(100)
+y=x-2*x^2+rnorm(100)
+plot(x, y)
+#a)
+set.seed(456)
+
+data = data.frame(x,y)
+```
+
+
+
+
+
+```{r echo = FALSE}
+#Linear
+linear_fit = glm(y ~ poly(x,1))
+linear=cv.glm(data,linear_fit)$delta[1]
+#quadratic
+quadratic_fit= glm(y ~ poly(x,2))
+quadratic=cv.glm(data,quadratic_fit)$delta[1]
+#cubic
+cubic_fit = glm(y ~ poly(x,3))
+cubic=cv.glm(data,cubic_fit)$delta[1]
+#quartic
+quartic_fit  = glm(y ~ poly(x,4))
+quartic=cv.glm(data,quartic_fit)$delta[1]
+
+model_acc_all = c(linear,quadratic,cubic,quartic)
+plot(model_acc_all, type = 'b')
+```
+## b)
+From this plot we can see that the quadratic, cubic and quartic models are giving the almost similar and less than 0.9 . Yes this is what we expected since for the quadratic model matches the model which we used to generate the data.
+
+The summary of the quadratic model  is shown below;
+```{r echo = FALSE}
+#c)
+#For quadratic 
+summary(quadratic_fit)
+```
+
+
+##C)
+Statistical significance of the coefficient estimates from each model is shown below
+```{r echo = FALSE}
+#for linear 
+confint(linear_fit)
+#for quadratic 
+confint(quadratic_fit)
+#for cubic 
+confint(cubic_fit)
+#for quartic
+confint(quartic_fit)
+```
+
+The confidence intervals for the coefficients of the linear and quadratic terms exclude zero ( implies that they’re significant), while the confidence intervals for the coefficients of the cubic and quartic terms(i.e. x^3 and x^4) include zero (implies that they’re not significant). The confidence interval for the intercept also excludes zero, reflecting the mean of the response.
